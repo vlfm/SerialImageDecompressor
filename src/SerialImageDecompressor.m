@@ -6,8 +6,12 @@
 
 - (id)init {
     self = [super init];
+    
     _queue = [[NSOperationQueue alloc] init];
     _queue.maxConcurrentOperationCount = 1;
+    
+    _wakeUpMainThread = YES;
+    
     return self;
 }
 
@@ -16,10 +20,20 @@
         
         UIImage *decompressedImage = [SerialImageDecompressor decompressImage:image];
         
-        CFRunLoopPerformBlock(CFRunLoopGetMain(), kCFRunLoopDefaultMode, ^ {
-            [self.delegate decompressor:self didDecompressImage:decompressedImage context:context];
+        if (self.wakeUpMainThread) {
             
-        });
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [self.delegate decompressor:self didDecompressImage:decompressedImage context:context];
+            });
+            
+        } else {
+            
+            CFRunLoopPerformBlock(CFRunLoopGetMain(), kCFRunLoopDefaultMode, ^ {
+                [self.delegate decompressor:self didDecompressImage:decompressedImage context:context];
+            });
+            
+        }
+        
     }];
 }
 
